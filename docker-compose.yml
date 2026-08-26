@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  captcha-solver:
+    build: .
+    image: captcha-solver:latest
+    container_name: captcha-solver
+    restart: unless-stopped
+    ports:
+      - "15666:15666"
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+      - ./__cache:/app/__cache
+    deploy:
+      resources:
+        limits:
+          memory: 2G

@@ -1,0 +1,121 @@
+# -*- coding: utf-8 -*-
+"""OCR engine: char-level voting + 7 high-quality preprocessing variants."""
+import io, re, numpy as np, cv2, ddddocr
+from collections import Counter
+from solver.utils import b64_to_bytes as _b64
+
+_models = {}
+def _get_model(name):
+    if name not in _models:
+        if name == "default":
+            _models[name] = ddddocr.DdddOcr(show_ad=False)
+        else:
+            _models[name] = ddddocr.DdddOcr(beta=True, show_ad=False)
+    return _models[name]
+
+def _bytes_to_cv(b):
+    arr = np.frombuffer(b, np.uint8)
+    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    if img is None:
+        from PIL import Image
+        img = np.array(Image.open(io.BytesIO(b)).convert("RGB"))
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    if img is None: raise ValueError("bad image")
+    return img
+
+def _encode(img):
+    ok, buf = cv2.imencode(".png", img)
+    return buf.tobytes()
+
+def _g2b(gray):
+    return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
+def _preprocess(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if img.ndim == 3 else img
+    v = [("orig", img)]
+    up2 = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    v.append(("up2", _g2b(up2)))
+    _, otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    ots2 = cv2.resize(otsu, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    v.append(("otsu2x", _g2b(ots2)))
+    a = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 12)
+    v.append(("adapt", _g2b(a)))
+    c = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8)).apply(gray)
+    v.append(("clahe", _g2b(c)))
+    d = cv2.fastNlMeansDenoising(gray, None, 10, 7, 21)
+    d2 = cv2.resize(d, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    v.append(("den2x", _g2b(d2)))
+    inv = cv2.bitwise_not(gray)
+    inv2 = cv2.resize(inv, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    v.append(("inv2x", _g2b(inv2)))
+    return v
+
+def _classify(img_bytes, model_name):
+    try:
+        return _get_model(model_name).classification(img_bytes)
+    except:
+        return ""
+
+def _clean_seq(s):
+    return re.sub(r"[^A-Za-z0-9]", "", s).upper()
+
+def _char_vote(results, min_len=2):
+    valid = []
+    for r in results:
+        c = _clean_seq(r)
+        if len(c) >= min_len:
+            valid.append(c)
+    if not valid:
+        return "NONE", 0.0, 0
+    max_len = max(len(x) for x in valid)
+    grp = [x for x in valid if len(x) == max_len]
+    chars = []
+    agrees = 0
+    for pos in range(max_len):
+        cols = [x[pos] for x in grp]
+        ch, nv = Counter(cols).most_common(1)[0]
+        chars.append(ch)
+        agrees += nv
+    series = "".join(chars)
+    ratio = agrees / (max_len * len(grp)) if grp else 0.0
+    return series, round(ratio, 4), len(valid)
+
+_LETTER_DIGIT_MAP = str.maketrans({"0":"O","1":"I","2":"Z","5":"S","8":"B"})
+_DIGIT_LETTER_MAP = str.maketrans({"O":"0","I":"1","S":"5","Z":"2","B":"8","L":"1","l":"1","o":"0"})
+
+def _post_fix(text, type_code):
+    if not text or text == "NONE": return text
+    if type_code == 1002:
+        return re.sub(r"[^0-9]", "", text.translate(_DIGIT_LETTER_MAP))
+    if type_code == 1003:
+        return re.sub(r"[^A-Z]", "", text.translate(_LETTER_DIGIT_MAP))
+    return re.sub(r"[^A-Za-z0-9]", "", text).upper()
+
+def solve_ocr(img_src, type_code=1001):
+    try:
+        if isinstance(img_src, str):
+            if len(img_src) > 200 or "," in img_src:
+                b = _b64(img_src)
+            else:
+                with open(img_src, "rb") as f: b = f.read()
+        elif isinstance(img_src, bytes):
+            b = img_src
+        else:
+            b = img_src.read()
+        img = _bytes_to_cv(b)
+    except Exception as e:
+        return {"code": -2, "error": "pic load fail: " + str(e), "text": "", "confidence": 0.0}
+    versions = _preprocess(img)
+    all_results = []
+    for _vname, vimg in versions:
+        vbytes = _encode(vimg)
+        for mname in ("default", "beta"):
+            txt = _classify(vbytes, mname)
+            if txt and _clean_seq(txt):
+                all_results.append(txt)
+    if not all_results:
+        return {"code": -3, "error": "recog failed", "text": "", "confidence": 0.0}
+    best, conf, votes = _char_vote(all_results)
+    clean = _post_fix(best, type_code)
+    if not clean: clean = best
+    return {"code": 0, "text": clean, "raw": best, "confidence": conf, "votes": votes, "agreement": votes}

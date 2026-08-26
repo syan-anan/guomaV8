@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>Captcha Solver 测试页</title>
+<style>*{box-sizing:border-box;font-family:system-ui;}body{max-width:900px;margin:auto;padding:20px;}
+textarea{width:100%;height:80px;font-family:monospace;font-size:13px;}
+pre{background:#f5f5f5;padding:12px;border-radius:6px;overflow:auto;max-height:500px;}
+.card{border:1px solid #ddd;border-radius:8px;padding:16px;margin:10px 0;}
+button{background:#1a73e8;color:white;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;}
+select,input{padding:8px;border:1px solid #ccc;border-radius:4px;width:100%;margin:4px 0;}
+.row{display:flex;gap:10px;}.row>*{flex:1;}
+</style></head><body>
+<h2>Captcha Solver v2.0 — 测试面板</h2>
+<div class=card>
+<label>题型：</label><select id=type>
+<option value=1001>1001 英数混合</option>
+<option value=1002>1002 纯数字</option>
+<option value=1003>1003 纯字母</option>
+<option value=1004>1004 极验-三代滑动</option>
+<option value=1010>1010 极验-二代三代通用</option>
+<option value=1012>1012 极验-四代滑动</option>
+<option value=1005>1005 极验-三代点选(选字)</option>
+<option value=1006>1006 极验-三代点选(选物)</option>
+<option value=1007>1007 极验-三代点选(语序选择)</option>
+<option value=1008>1008 极验-三代空间推理</option>
+<option value=1015>1015 极验-四代选汉字</option>
+<option value=1016>1016 极验-四代点过</option>
+<option value=1017>1017 极验-四代点图标</option>
+<option value=1018>1018 极验-四代九宫格</option>
+<option value=1019>1019 极验-三代九宫格</option>
+<option value=1020>1020 易盾-滑动拼图</option>
+<option value=1021>1021 易盾-无感(点过)</option>
+<option value=1022>1022 易盾-点字</option>
+<option value=1023>1023 易盾-点图标</option>
+</select>
+<label>图片 Base64 / URL：</label><textarea id=image placeholder="粘贴 base64 或图片URL"></textarea>
+<label>滑块小图（可选）：</label><textarea id=gap placeholder="滑块小图 base64（滑块类需要）"></textarea>
+<label>额外参数（JSON）：</label><input id=extra placeholder='{"words":["A","B"], "count":3}'>
+<div class=row><button onclick=test()>识别</button><button onclick=upload()>上传图片</button></div>
+</div>
+<pre id=output>等待测试…</pre>
+<script>
+async function test(){const t=document.getElementById('type').value;const img=document.getElementById('image').value;const gap=document.getElementById('gap').value;const extra=document.getElementById('extra').value;const out=document.getElementById('output');out.textContent='请求中…';try{const r=await fetch('/solve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:parseInt(t),image:img,gap_image:gap||null,extra:extra?JSON.parse(extra):null})});const d=await r.json();out.textContent=JSON.stringify(d,null,2)}catch(e){out.textContent='错误: '+e}}
+async function upload(){const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async function(){const file=input.files[0];if(!file)return;const b64=await file2b64(file);document.getElementById('image').value=b64;};input.click()}
+function file2b64(file){return new Promise((r,j)=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.onerror=j;fr.readAsDataURL(file)})}
+</script></body></html>

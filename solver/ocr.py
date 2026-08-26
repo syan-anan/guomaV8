@@ -1,0 +1,234 @@
+"""OCR engine: char-level voting + 7 high-quality preprocessing variants. (optimized: fast-path + full-vote fallback)"""
+import io, re, time
+import numpy as np
+import cv2
+import ddddocr
+from collections import Counter
+from solver.utils import b64_to_bytes as _b64
+from solver.cnn import cnn_ocr, merge_engines
+from solver.crnn_ocr import crnn_ocr
+CNN_ENABLED = False  # 弱 CNN 暂禁，训练好单字符模型后再开
+
+_models = {}
+def _get_model(name):
+    if name not in _models:
+        if name == "default":
+            _models[name] = syandaV8.DdddOcr(show_ad=False)
+        else:
+            _models[name] = syandaV8.DdddOcr(beta=True, show_ad=False)
+    return _models[name]
+
+
+
+
+def preload_ocr_models():
+    """预热 OCR 模型，避免首次请求冷启动。"""
+    for name in ("default", "beta"):
+        _get_model(name)
+
+# 快速路径置信度阈值：>= 此值直接返回（45 样本实测 0.95 全对）
+FAST_CONF = 0.95
+# 各题型快速路径首选模型：1002 数字 default即可；1001/1003 用 beta（更强）
+_PRIMARY = {1001: "beta", 1002: "default", 1003: "beta"}
+# 各题型快速路径首选模型：1002 数字 default 即可；1001/1003 用 beta（更强）
+_FAST_MODEL = {1001: "beta", 1002: "default", 1003: "beta"}
+
+def _bytes_to_cv(b):
+    arr = np.frombuffer(b, np.uint8)
+    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    if img is None:
+        from PIL import Image
+        img = np.array(Image.open(io.BytesIO(b)).convert("RGB"))
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    if img is None: raise ValueError("bad image")
+    return img
+
+def _encode(img):
+    ok, buf = cv2.imencode(".png", img)
+    return buf.tobytes()
+
+def _g2b(gray):
+    return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
+def _preprocess(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if img.ndim == 3 else img
+    v = [("orig", img)]
+    up2 = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    v.append(("up2", _g2b(up2)))
+    _, otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    ots2 = cv2.resize(otsu, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    v.append(("otsu2x", _g2b(ots2)))
+    a = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 12)
+    v.append(("adapt", _g2b(a)))
+    c = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8)).apply(gray)
+    v.append(("clahe", _g2b(c)))
+    d = cv2.fastNlMeansDenoising(gray, None, 10, 7, 21)
+    d2 = cv2.resize(d, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    v.append(("den2x", _g2b(d2)))
+    inv = cv2.bitwise_not(gray)
+    inv2 = cv2.resize(inv, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    v.append(("inv2x", _g2b(inv2)))
+    return v
+
+def _classify(img_bytes, model_name):
+    try:
+        return _get_model(model_name).classification(img_bytes)
+    except:
+        return ""
+
+def _classify_prob(img_bytes, model_name):
+    """一次带概率的分类，返回 (text, confidence)。失败返回 ('', 0.0)"""
+    try:
+        r = _get_model(model_name).classification(img_bytes, probability=True)
+        if isinstance(r, dict):
+            return r.get("text", ""), float(r.get("confidence", 0.0) or 0.0)
+        return r, 0.0
+    except Exception:
+        return "", 0.0
+
+def _clean_seq(s):
+    return re.sub(r"[^A-Za-z0-9]", "", s).upper()
+
+def _char_vote(results, min_len=2):
+    valid = []
+    for r in results:
+        c = _clean_seq(r)
+        if len(c) >= min_len:
+            valid.append(c)
+    if not valid:
+        return "NONE", 0.0, 0
+    max_len = max(len(x) for x in valid)
+    grp = [x for x in valid if len(x) == max_len]
+    chars = []
+    agrees = 0
+    for pos in range(max_len):
+        cols = [x[pos] for x in grp]
+        ch, nv = Counter(cols).most_common(1)[0]
+        chars.append(ch)
+        agrees += nv
+    series = "".join(chars)
+    ratio = agrees / (max_len * len(grp)) if grp else 0.0
+    return series, round(ratio, 4), len(valid)
+
+_LETTER_DIGIT_MAP = str.maketrans({"0":"O","1":"I","2":"Z","5":"S","8":"B"})
+_DIGIT_LETTER_MAP = str.maketrans({"O":"0","I":"1","S":"5","Z":"2","B":"8","L":"1","l":"1","o":"0"})
+
+def _post_fix(text, type_code):
+    if not text or text == "NONE": return text
+    if type_code == 1002:
+        return re.sub(r"[^0-9]", "", text.translate(_DIGIT_LETTER_MAP))
+    if type_code == 1003:
+        return re.sub(r"[^A-Z]", "", text.translate(_LETTER_DIGIT_MAP))
+    return re.sub(r"[^A-Za-z0-9]", "", text).upper()
+
+def _decode_src(img_src):
+    if isinstance(img_src, str):
+        if len(img_src) > 200 or "," in img_src:
+            b = _b64(img_src)
+        else:
+            with open(img_src, "rb") as f: b = f.read()
+    elif isinstance(img_src, bytes):
+        b = img_src
+    else:
+        b = img_src.read()
+    return _bytes_to_cv(b)
+
+def fuse_crnn(dd, dc, ct, cc):
+    """融合规则：R_len_conf（最优规则 63.9%）"""
+    dd = (dd or "").strip().upper()
+    ct = (ct or "").strip().upper()
+    if not ct:
+        return dd, dc, "dd"
+    if not dd:
+        return ct, cc, "crnn"
+    Ld, Lc = len(dd), len(ct)
+    if Ld == Lc:
+        if cc >= dc + 0.05:
+            return ct, cc, "crnn"
+        return dd, dc, "dd"
+    if Lc > Ld and cc >= 0.5:
+        return ct, cc, "crnn"
+    if Ld > Lc and dc >= 0.5:
+        return dd, dc, "dd"
+    return dd, dc, "dd"
+
+def _full_vote(img, type_code, extra_results=None):
+    """现有全量逻辑：7 变体 x 2 模型投票。extra_results 可追加额外识别串。"""
+    versions = _preprocess(img)
+    all_results = []
+    if extra_results:
+        all_results.extend(extra_results)
+    for _vname, vimg in versions:
+        vbytes = _encode(vimg)
+        for mname in ("default", "beta"):
+            txt = _classify(vbytes, mname)
+            if txt and _clean_seq(txt):
+                all_results.append(txt)
+    if not all_results:
+        return {"code": -3, "error": "recog failed", "text": "", "confidence": 0.0}
+    best, conf, votes = _char_vote(all_results)
+    clean = _post_fix(best, type_code)
+    if not clean: clean = best
+    return {"code": 0, "text": clean, "raw": best, "confidence": conf, "votes": votes, "agreement": votes}
+
+def _finalize(result, t0, img_bytes):
+    if result.get("text"):
+        _ct, _cc = crnn_ocr(img_bytes)
+        if _ct:
+            _mt, _mc, _srcn = fuse_crnn(result.get("text"), result.get("confidence", 0.0), _ct, _cc)
+            if _srcn == "crnn":
+                result["text"] = _mt
+                result["confidence"] = round(_mc, 4)
+            result["engine"] = "dd+crnn"
+    result["cost_ms"] = round((time.perf_counter()-t0)*1000, 1)
+    return result
+
+def solve_ocr(img_src, type_code=1001):
+    t0 = time.perf_counter()
+    try:
+        img = _decode_src(img_src)
+    except Exception as e:
+        return {"code": -2, "error": "pic load fail: " + str(e), "text": "", "confidence": 0.0}
+
+    # ---- 渐进式快速路径：1次推理(按题型选模型) -> 不足补 2次 -> 再不足全量投票 ----
+    img_bytes = _encode(img)
+    first = _PRIMARY.get(type_code, "beta")
+    second = "beta" if first == "default" else "default"
+
+    txt1, conf1 = _classify_prob(img_bytes, first)
+    if txt1 and conf1 > 0.0:
+        clean = _post_fix(_clean_seq(txt1), type_code) if txt1 else ""
+        if clean and len(clean) >= 2 and conf1 >= FAST_CONF:
+            if len(clean) >= 5 and CNN_ENABLED:
+                _ct, _cc = cnn_ocr(img_bytes)
+                if _ct:
+                    clean, conf1, _ = merge_engines(clean, conf1, _ct, _cc, type_code)
+            result = {"code": 0, "text": clean, "raw": txt1, "confidence": round(conf1, 4),
+                    "votes": 1, "agreement": 1, "fast": True}
+            return _finalize(result, t0, img_bytes)
+
+    txt2, conf2 = _classify_prob(img_bytes, second)
+    cands = [(conf1, first, txt1), (conf2, second, txt2)]
+    cands = [x for x in cands if x[2] and x[0] > 0.0]
+    if cands:
+        cands.sort(key=lambda x: x[0], reverse=True)
+        conf, mname, txt = cands[0]
+        clean = _post_fix(_clean_seq(txt), type_code) if txt else ""
+        if clean and len(clean) >= 2 and conf >= FAST_CONF:
+            if len(clean) >= 5 and CNN_ENABLED:
+                _ct, _cc = cnn_ocr(img_bytes)
+                if _ct:
+                    clean, conf, _ = merge_engines(clean, conf, _ct, _cc, type_code)
+            result = {"code": 0, "text": clean, "raw": txt, "confidence": round(conf, 4),
+                    "votes": 2, "agreement": 2, "fast": True}
+            return _finalize(result, t0, img_bytes)
+
+    # ---- 兜底：全量投票（保留原逻辑），fast 两次结果一并参与投票 ----
+    extra = [t for _, _, t in cands]
+
+
+    result = _full_vote(img, type_code, extra_results=(extra or None))
+    result["fast"] = False
+    result["cost_ms"] = round((time.perf_counter()-t0)*1000, 1)
+    return _finalize(result, t0, img_bytes)
+
