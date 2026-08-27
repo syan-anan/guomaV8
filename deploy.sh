@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # guomaV8 一键部署脚本（Linux / macOS / 支持 Docker 的 NAS）
-# 用法: bash <(curl -fsSL https://raw.githubusercontent.com/syan-anan/guomaV8/main/deploy.sh)
+# 用法: bash <(curl -fsSL https://cdn.jsdelivr.net/gh/syan-anan/guomaV8@main/deploy.sh)
 set -e
 
 APP_DIR=${APP_DIR:-/opt/guomaV8}
