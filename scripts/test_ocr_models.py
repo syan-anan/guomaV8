@@ -1,13 +1,14 @@
-import os, sys, syandaV8, io, cv2, numpy as np, random
+import ddddocr
+import os, sys, io, cv2, numpy as np, random
 from PIL import Image, ImageDraw, ImageFilter
 os.chdir("H:\\qinglong\\syandaV8")
 os.environ["XDG_CACHE_HOME"] = "H:\\qinglong\\syandaV8\\__cache"
 sys.path.insert(0, ".")
 
 models = {
-    "default": syandaV8.DdddOcr(show_ad=False),
-    "beta": syandaV8.DdddOcr(show_ad=False, beta=True),
-    "old": syandaV8.DdddOcr(show_ad=False, old=True),
+    "default": ddddocr.DdddOcr(show_ad=False),
+    "beta": ddddocr.DdddOcr(show_ad=False, beta=True),
+    "old": ddddocr.DdddOcr(show_ad=False, old=True),
 }
 
 def gen_captcha(text):

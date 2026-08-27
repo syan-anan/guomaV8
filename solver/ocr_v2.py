@@ -8,7 +8,7 @@ from collections import Counter
 _models = {}
 def _get_model(name):
     if name not in _models:
-        _models[name] = syandaV8.DdddOcr(show_ad=False) if name == "default" else syandaV8.DdddOcr(beta=True, show_ad=False)
+        _models[name] = ddddocr.DdddOcr(show_ad=False) if name == "default" else ddddocr.DdddOcr(beta=True, show_ad=False)
     return _models[name]
 
 # --- 借鉴自 RapidOCR & PaddleOCR：高效预处理变体 ---

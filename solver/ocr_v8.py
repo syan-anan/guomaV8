@@ -36,7 +36,7 @@ CORRECTION_ALPHA = str.maketrans({'1':'l','I':'l','|':'l','0':'O','8':'B'})
 
 class V8Solver:
     def __init__(self):
-        self._ocr = syandaV8.DdddOcr(show_ad=False)
+        self._ocr = ddddocr.DdddOcr(show_ad=False)
         
     def solve(self, img_src: Union[str, bytes], type_code: int = 1001) -> Dict:
         start_time = time.perf_counter()

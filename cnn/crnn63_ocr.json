@@ -1,0 +1,9 @@
+{
+  "chars": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+  "blank": 62,
+  "height": 48,
+  "width": 160,
+  "checkpoint": "H:\\qinglong\\ddddocr\\cnn\\crnn63_best.pt",
+  "epoch": 76,
+  "best": 0.16285
+}

@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 DDDDOCR V9 完美融合版 (Final Integration)
 整合 RapidOCR 的预处理理念、PaddleOCR 的标准化策略以及 syandaV8 的高性能推理。
@@ -45,8 +45,8 @@ class V9Solver:
     V9 求解器：多引擎 + 深度图像清洗 + 逻辑纠错
     """
     def __init__(self):
-        self._ocr = syandaV8.DdddOcr(show_ad=False)
-        self._ocr_beta = syandaV8.DdddOcr(beta=True, show_ad=False)
+        self._ocr = ddddocr.DdddOcr(show_ad=False)
+        self._ocr_beta = ddddocr.DdddOcr(beta=True, show_ad=False)
         
     def solve(self, img_src: Union[str, bytes], type_code: int = 1001) -> Dict:
         start_time = time.perf_counter()

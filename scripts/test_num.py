@@ -1,8 +1,9 @@
+import ddddocr
 import os, sys, io, random
 os.chdir("H:\\qinglong\\syandaV8")
 os.environ["XDG_CACHE_HOME"] = "H:\\qinglong\\syandaV8\\__cache"
 sys.path.insert(0, ".")
-import numpy as np, cv2, syandaV8
+import numpy as np, cv2
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 def get_font(size=30):
@@ -31,7 +32,7 @@ def gen(text, seed):
     return buf.getvalue()
 
 # 数字专用模型（beta + 纯数字字符集）
-num_ocr = syandaV8.DdddOcr(show_ad=False, beta=True)
+num_ocr = ddddocr.DdddOcr(show_ad=False, beta=True)
 def solve_num(data):
     img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)

@@ -13,9 +13,9 @@ _models = {}
 def _get_model(name):
     if name not in _models:
         if name == "default":
-            _models[name] = syandaV8.DdddOcr(show_ad=False)
+            _models[name] = ddddocr.DdddOcr(show_ad=False)
         else:
-            _models[name] = syandaV8.DdddOcr(beta=True, show_ad=False)
+            _models[name] = ddddocr.DdddOcr(beta=True, show_ad=False)
     return _models[name]
 
 

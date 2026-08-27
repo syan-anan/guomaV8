@@ -1,3 +1,4 @@
+import ddddocr
 import os
 os.chdir("H:/qinglong/syandaV8")
 f = open("solver/ocr.py", "w", encoding="utf-8")
@@ -5,7 +6,7 @@ f.write("""# -*- coding: utf-8 -*-
 """OCR Engine - 1001/1002/1003. Multi-pass voting with preprocessing."""
 
 import re, collections
-import numpy as np, cv2, syandaV8
+import numpy as np, cv2
 from solver.utils import load_to_cv
 from config import OCR_RETRY
 
@@ -19,7 +20,7 @@ _ocr = None
 def _get_ocr():
     global _ocr
     if _ocr is None:
-        _ocr = syandaV8.DdddOcr(show_ad=False)
+        _ocr = ddddocr.DdddOcr(show_ad=False)
     return _ocr
 
 def filter_result(text, charset):

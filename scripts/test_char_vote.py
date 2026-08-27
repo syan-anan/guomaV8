@@ -1,13 +1,14 @@
+import ddddocr
 import os, sys, io, random, collections
 os.chdir("H:/qinglong/syandaV8")
 os.environ["XDG_CACHE_HOME"] = "H:/qinglong/syandaV8/__cache"
 sys.path.insert(0, ".")
-import cv2, numpy as np, syandaV8
+import cv2, numpy as np
 from captcha.image import ImageCaptcha
 
 class OCRV2:
     def __init__(self):
-        self.odels = [syandaV8.DdddOcr(show_ad=False), syandaV8.DdddOcr(show_ad=False, beta=True)]
+        self.odels = [ddddocr.DdddOcr(show_ad=False), ddddocr.DdddOcr(show_ad=False, beta=True)]
         self.charset_an = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
         # 常见混淆组：形状相近的字符
         self.confusion_groups = [

@@ -8,3 +8,5 @@ httpx==0.28.1
 python-multipart==0.0.32
 loguru==0.7.3
 apscheduler==3.11.3
+onnxruntime>=1.15.0
+python-dotenv==1.0.1

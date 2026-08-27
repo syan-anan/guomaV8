@@ -1,3 +1,4 @@
+import ddddocr
 import os
 os.chdir("H:/qinglong/syandaV8")
 f = open("scripts/test_accuracy2.py", "w", encoding="utf-8")
@@ -5,7 +6,7 @@ f.write("""import os, sys, io, random, collections
 os.chdir("H:/qinglong/syandaV8")
 os.environ["XDG_CACHE_HOME"] = "H:/qinglong/syandaV8/__cache"
 sys.path.insert(0, ".")
-import cv2, numpy as np, syandaV8
+import cv2, numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 def get_font(size=32):
@@ -33,7 +34,7 @@ def gen(text, seed):
     buf = io.BytesIO(); img.save(buf, "JPEG", quality=75)
     return buf.getvalue()
 
-ocr = syandaV8.DdddOcr(show_ad=False)
+ocr = ddddocr.DdddOcr(show_ad=False)
 correct = 0
 for i in range(100):
     text = "".join(random.choices("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", k=4))

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """题型注册表 — 将 19 个题型映射到具体的求解函数。"""
 from solver.ocr import solve_ocr
+from solver.crnn63_ocr import solve_ocr63
 from solver.slide import detect_gap_multiscale
 from solver.trajectory import generate_track
 from solver.click import solve_click_word, solve_click_icon, solve_click_pass
@@ -61,9 +62,9 @@ def _handle_slide(bg, gap=None):
 # 题型注册表
 REGISTRY = {
     # 文字识别
-    1001: {"name": "英数混合", "fn": lambda img, **kw: solve_ocr(img, 1001)},
-    1002: {"name": "纯数字", "fn": lambda img, **kw: solve_ocr(img, 1002)},
-    1003: {"name": "纯字母", "fn": lambda img, **kw: solve_ocr(img, 1003)},
+    1001: {"name": "英数混合", "fn": lambda img, **kw: solve_ocr63(img, 1001)},
+    1002: {"name": "纯数字", "fn": lambda img, **kw: solve_ocr63(img, 1002)},
+    1003: {"name": "纯字母", "fn": lambda img, **kw: solve_ocr63(img, 1003)},
     # 极验综合
     1010: {"name": "极验-二代三代通用", "fn": lambda bg, gap=None, **kw: _handle_slide(bg, gap)},
     # 极验三代

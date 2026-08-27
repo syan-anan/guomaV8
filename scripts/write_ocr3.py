@@ -1,10 +1,11 @@
+import ddddocr
 import os
 os.chdir("H:/qinglong/syandaV8")
 f = open("solver/ocr.py", "w", encoding="utf-8")
 f.write("""
 # -*- coding: utf-8 -*-
 import re, collections
-import numpy as np, cv2, syandaV8
+import numpy as np, cv2
 from solver.utils import load_to_cv
 from config import OCR_RETRY
 
@@ -17,9 +18,9 @@ CHARSETS = {
 _ocr_models = {}
 def _get_ocrs():
     if not _ocr_models:
-        _ocr_models["default"] = syandaV8.DdddOcr(show_ad=False)
-        _ocr_models["beta"] = syandaV8.DdddOcr(show_ad=False, beta=True)
-        _ocr_models["old"] = syandaV8.DdddOcr(show_ad=False, old=True)
+        _ocr_models["default"] = ddddocr.DdddOcr(show_ad=False)
+        _ocr_models["beta"] = ddddocr.DdddOcr(show_ad=False, beta=True)
+        _ocr_models["old"] = ddddocr.DdddOcr(show_ad=False, old=True)
     return _ocr_models
 
 def filter_result(text, charset):

@@ -10,14 +10,14 @@ _ocr_det = None
 def _det():
     global _ocr_det
     if _ocr_det is None:
-        _ocr_det = syandaV8.DdddOcr(det=True, show_ad=False)
+        _ocr_det = ddddocr.DdddOcr(det=True, show_ad=False)
     return _ocr_det
 
 _ocr_cls = None
 def _cls():
     global _ocr_cls
     if _ocr_cls is None:
-        _ocr_cls = syandaV8.DdddOcr(show_ad=False)
+        _ocr_cls = ddddocr.DdddOcr(show_ad=False)
     return _ocr_cls
 
 def _load_icon(src):

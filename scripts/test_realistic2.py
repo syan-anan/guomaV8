@@ -2,7 +2,7 @@ import os, sys, io, random, collections
 os.chdir("H:/qinglong/syandaV8")
 os.environ["XDG_CACHE_HOME"] = "H:/qinglong/syandaV8/__cache"
 sys.path.insert(0, ".")
-import cv2, numpy as np, syandaV8
+import cv2, numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from solver.ocr import solve_ocr
 

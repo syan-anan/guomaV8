@@ -1,8 +1,9 @@
+import ddddocr
 import os, sys, io, random, collections
 os.chdir("H:\\qinglong\\syandaV8")
 os.environ["XDG_CACHE_HOME"] = "H:\\qinglong\\syandaV8\\__cache"
 sys.path.insert(0, ".")
-import numpy as np, cv2, syandaV8
+import numpy as np, cv2
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 def get_font(size=30):
@@ -86,7 +87,7 @@ def multi_pass_ocr(data, ocr):
         return counter.most_common(1)[0][0]
     return ""
 
-ocr = syandaV8.DdddOcr(show_ad=False)
+ocr = ddddocr.DdddOcr(show_ad=False)
 tests = ["A7K3", "4B7K", "ABCD", "1234", "WXYZ", "3F9P", "J8K2", "MV6N", "5QXH", "H2P9"]
 correct = 0
 for i, t in enumerate(tests):

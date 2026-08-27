@@ -1,8 +1,9 @@
+import ddddocr
 import os, sys, io, random, collections
 os.chdir("H:\\qinglong\\syandaV8")
 os.environ["XDG_CACHE_HOME"] = "H:\\qinglong\\syandaV8\\__cache"
 sys.path.insert(0, ".")
-import numpy as np, cv2, syandaV8
+import numpy as np, cv2
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 def get_font(size=30):
@@ -69,7 +70,7 @@ def solve(data, ocr):
     result = collections.Counter(longs).most_common(1)[0][0]
     return result
 
-ocr = syandaV8.DdddOcr(show_ad=False)
+ocr = ddddocr.DdddOcr(show_ad=False)
 all_correct, all_total = 0, 0
 for rnd in range(5):
     random.seed(rnd*100)
