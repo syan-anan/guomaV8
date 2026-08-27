@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """逻辑推理引擎 — 1007 语序选择 / 1008 空间推理 / 1018 九宫格 / 1019 三代九宫格。"""
-from solver.click import detect_text_regions
+from solver.click import detect_text_regions, mark_duplicate_regions
 from solver.utils import load_to_cv
 
 def solve_word_order(img_src, target_phrase=None):
@@ -30,6 +30,7 @@ def solve_word_order(img_src, target_phrase=None):
             if best:
                 ri, r = best
                 used.add(ri)
+                mark_duplicate_regions(ri, regions, used)
                 ordered.append({"x": r["cx"], "y": r["cy"], "text": r["text"], "target": ch})
         return {"points": ordered, "count": len(ordered)}
     regions.sort(key=lambda r: (r["y"] // 30, r["x"]))

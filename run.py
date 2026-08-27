@@ -7,9 +7,9 @@ os.environ.setdefault("PIP_CACHE_DIR", os.path.join(os.getcwd(), "__cache", "pip
 os.environ.setdefault("XDG_CACHE_HOME", os.path.join(os.getcwd(), "__cache"))
 os.environ.setdefault("HF_HOME", os.path.join(os.getcwd(), "__cache", "hf"))
 # 从 api.server 导入并启动
-from api.server import app, HOST, PORT
+from api.server import app, HOST, PORT, APP_VERSION
 import uvicorn
 if __name__ == "__main__":
-    print(f"Captcha Solver v2.0 — 启动于 http://{HOST}:{PORT}")
+    print(f"syandaV8 {APP_VERSION} — 启动于 http://{HOST}:{PORT}")
     print(f"支持 {len(__import__('solver.registry').registry.REGISTRY)} 种题型")
     uvicorn.run(app, host=HOST, port=PORT, log_level="info")

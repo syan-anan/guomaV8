@@ -109,7 +109,7 @@ syandaV8/
 ```bash
 curl http://localhost:15666/
 # Expected:
-# {"code":0,"message":"ok","data":{"service":"syandaV8","version":"2.2.0","types":19,"status":"running"}}
+# {"code":0,"message":"ok","data":{"service":"syandaV8","version":"D3","types":19,"status":"running"}}
 ```
 
 ## Troubleshooting
@@ -137,7 +137,7 @@ deploy_ai = """\
 
 ```yaml
 name: syandaV8
-version: "2.2.0"
+version: "D3"
 python_min: "3.10"
 python_tested: "3.14.6"
 default_host: "0.0.0.0"
@@ -293,7 +293,7 @@ steps:
       code: 0
       data:
         service: syandaV8
-        version: "2.2.0"
+        version: "D3"
         types: 19
         status: running
 
@@ -316,7 +316,7 @@ endpoints:
       code: 0
       data:
         service: "syandaV8"
-        version: "2.2.0"
+        version: "D3"
         types: 19
         status: "running"
 

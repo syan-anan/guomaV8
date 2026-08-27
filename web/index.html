@@ -1,44 +1,229 @@
 <!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="utf-8"><title>Captcha Solver 测试页</title>
-<style>*{box-sizing:border-box;font-family:system-ui;}body{max-width:900px;margin:auto;padding:20px;}
-textarea{width:100%;height:80px;font-family:monospace;font-size:13px;}
-pre{background:#f5f5f5;padding:12px;border-radius:6px;overflow:auto;max-height:500px;}
-.card{border:1px solid #ddd;border-radius:8px;padding:16px;margin:10px 0;}
-button{background:#1a73e8;color:white;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;}
-select,input{padding:8px;border:1px solid #ccc;border-radius:4px;width:100%;margin:4px 0;}
-.row{display:flex;gap:10px;}.row>*{flex:1;}
-</style></head><body>
-<h2>Captcha Solver v2.0 — 测试面板</h2>
-<div class=card>
-<label>题型：</label><select id=type>
-<option value=1001>1001 英数混合</option>
-<option value=1002>1002 纯数字</option>
-<option value=1003>1003 纯字母</option>
-<option value=1004>1004 极验-三代滑动</option>
-<option value=1010>1010 极验-二代三代通用</option>
-<option value=1012>1012 极验-四代滑动</option>
-<option value=1005>1005 极验-三代点选(选字)</option>
-<option value=1006>1006 极验-三代点选(选物)</option>
-<option value=1007>1007 极验-三代点选(语序选择)</option>
-<option value=1008>1008 极验-三代空间推理</option>
-<option value=1015>1015 极验-四代选汉字</option>
-<option value=1016>1016 极验-四代点过</option>
-<option value=1017>1017 极验-四代点图标</option>
-<option value=1018>1018 极验-四代九宫格</option>
-<option value=1019>1019 极验-三代九宫格</option>
-<option value=1020>1020 易盾-滑动拼图</option>
-<option value=1021>1021 易盾-无感(点过)</option>
-<option value=1022>1022 易盾-点字</option>
-<option value=1023>1023 易盾-点图标</option>
-</select>
-<label>图片 Base64 / URL：</label><textarea id=image placeholder="粘贴 base64 或图片URL"></textarea>
-<label>滑块小图（可选）：</label><textarea id=gap placeholder="滑块小图 base64（滑块类需要）"></textarea>
-<label>额外参数（JSON）：</label><input id=extra placeholder='{"words":["A","B"], "count":3}'>
-<div class=row><button onclick=test()>识别</button><button onclick=upload()>上传图片</button></div>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>syandaV8 D3 · 测试面板</title>
+<style>
+:root{
+  --bg:#070b14;
+  --ink:#eaf0ff;
+  --sub:#94a3c8;
+  --line:rgba(255,255,255,.12);
+  --field:rgba(8,13,26,.46);
+  --ok:#34d399;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{
+  font-family:"Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--ink);
+  overflow-x:hidden;
+}
+
+/* ---- 动态玻璃背景 ---- */
+.aurora{position:fixed;inset:-25%;z-index:-1;filter:blur(85px) saturate(140%);pointer-events:none}
+.blob{position:absolute;border-radius:50%;mix-blend-mode:screen}
+.b1{width:58vmax;height:58vmax;left:-12%;top:-18%;background:#1667f2;opacity:.55;animation:d1 26s ease-in-out infinite alternate}
+.b2{width:44vmax;height:44vmax;right:-14%;top:8%;background:#14c4e9;opacity:.5;animation:d2 32s ease-in-out infinite alternate}
+.b3{width:38vmax;height:38vmax;left:28%;bottom:-18%;background:#8b5cf6;opacity:.42;animation:d3 38s ease-in-out infinite alternate}
+.b4{width:22vmax;height:22vmax;right:10%;bottom:-12%;background:#f59e0b;opacity:.28;animation:d2 29s ease-in-out infinite alternate-reverse}
+@keyframes d1{to{transform:translate(14%,10%) scale(1.18)}}
+@keyframes d2{to{transform:translate(-16%,-8%) scale(1.12)}}
+@keyframes d3{to{transform:translate(10%,-14%) scale(1.22)}}
+@media (prefers-reduced-motion:reduce){.blob{animation:none}}
+
+.wrap{max-width:880px;margin:0 auto;padding:52px 20px 44px}
+
+/* ---- 头部 ---- */
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:26px}
+h1{font-size:clamp(21px,3vw,28px);font-weight:650}
+.badge{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:6px 13px;border-radius:999px;font-size:12.5px;color:#cfe0ff;
+  background:linear-gradient(135deg,rgba(56,189,248,.22),rgba(79,140,255,.16));
+  border:1px solid rgba(125,211,252,.35);
+  backdrop-filter:blur(12px);
+}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulse 2.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,.45)}55%{box-shadow:0 0 0 6px rgba(52,211,153,0)}}
+
+/* ---- 玻璃卡 ---- */
+.card{
+  background:linear-gradient(155deg,rgba(255,255,255,.105),rgba(255,255,255,.038));
+  border:1px solid var(--line);
+  border-radius:18px;
+  backdrop-filter:blur(26px) saturate(150%);
+  -webkit-backdrop-filter:blur(26px) saturate(150%);
+  box-shadow:0 26px 60px rgba(2,6,20,.55),inset 0 1px 0 rgba(255,255,255,.17);
+  padding:26px;
+}
+.card + .card{margin-top:20px}
+
+label{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--sub);margin:16px 0 7px}
+label:first-child{margin-top:0}
+select,textarea,input{
+  width:100%;background:var(--field);border:1px solid var(--line);border-radius:12px;
+  color:var(--ink);padding:11px 13px;font-size:14px;outline:none;
+  transition:border-color .18s,box-shadow .18s;
+}
+textarea{font-family:Consolas,Menlo,monospace;font-size:13px;resize:vertical}
+::placeholder{color:#5b6787}
+select:focus,textarea:focus,input:focus{
+  border-color:rgba(125,211,252,.6);
+  box-shadow:0 0 0 3px rgba(56,189,248,.16);
+}
+select{
+  appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3c8' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:40px;
+}
+select option{background:#0d1526;color:var(--ink)}
+
+.row{display:flex;gap:12px;margin-top:20px}
+.btn{
+  flex:1;display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  border:none;border-radius:12px;padding:13px 20px;font-size:14.5px;font-weight:600;
+  color:#fff;cursor:pointer;transition:transform .16s,filter .16s,box-shadow .16s;
+}
+.btn:active{transform:translateY(1px)}
+.btn svg{width:17px;height:17px}
+.btn-primary{
+  background:linear-gradient(135deg,#38bdf8,#2563eb);
+  box-shadow:0 12px 26px rgba(37,99,235,.38),inset 0 1px 0 rgba(255,255,255,.25);
+}
+.btn-primary:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.btn-ghost{
+  background:rgba(255,255,255,.09);border:1px solid var(--line);
+  backdrop-filter:blur(10px);
+}
+.btn-ghost:hover{background:rgba(255,255,255,.15);transform:translateY(-1px)}
+
+/* ---- 响应台 ---- */
+.console-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.console-title{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--sub)}
+.chip{
+  font-size:12px;padding:4px 11px;border-radius:999px;
+  border:1px solid var(--line);color:var(--sub);background:rgba(255,255,255,.05);
+}
+.chip.ok{color:#bbf7d0;border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.12)}
+.chip.err{color:#fecdd3;border-color:rgba(251,113,133,.4);background:rgba(251,113,133,.12)}
+pre#output{
+  background:rgba(5,9,18,.55);border:1px solid rgba(255,255,255,.08);border-radius:12px;
+  padding:15px;min-height:104px;max-height:520px;overflow:auto;
+  font-family:Consolas,Menlo,monospace;font-size:13px;line-height:1.65;
+  white-space:pre-wrap;word-break:break-all;color:#cbd5ef;
+}
+#output .k{color:#7dd3fc}
+#output .s{color:#a7f3d0}
+#output .n{color:#fcd34d}
+#output .b{color:#e9a8ff}
+#output.muted{color:#5b6787;font-family:inherit}
+
+footer{text-align:center;margin-top:24px;font-size:12px;color:#49557a}
+
+@media (max-width:600px){
+  .wrap{padding:34px 14px}
+  .card{padding:18px}
+  .row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<div class="aurora">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="blob b3"></div><div class="blob b4"></div>
 </div>
-<pre id=output>等待测试…</pre>
+
+<div class="wrap">
+  <header>
+    <h1>syandaV8 测试面板</h1>
+    <span class="badge"><span class="dot"></span>D3 · 19 种题型</span>
+  </header>
+
+  <div class="card">
+    <label for="type">题型</label>
+    <select id="type">
+      <option value=1001>1001 英数混合</option>
+      <option value=1002>1002 纯数字</option>
+      <option value=1003>1003 纯字母</option>
+      <option value=1004>1004 极验-三代滑动</option>
+      <option value=1010>1010 极验-二代三代通用</option>
+      <option value=1012>1012 极验-四代滑动</option>
+      <option value=1005>1005 极验-三代点选(选字)</option>
+      <option value=1006>1006 极验-三代点选(选物)</option>
+      <option value=1007>1007 极验-三代点选(语序选择)</option>
+      <option value=1008>1008 极验-三代空间推理</option>
+      <option value=1015>1015 极验-四代选汉字</option>
+      <option value=1016>1016 极验-四代点过</option>
+      <option value=1017>1017 极验-四代点图标</option>
+      <option value=1018>1018 极验-四代九宫格</option>
+      <option value=1019>1019 极验-三代九宫格</option>
+      <option value=1020>1020 易盾-滑动拼图</option>
+      <option value=1021>1021 易盾-无感(点过)</option>
+      <option value=1022>1022 易盾-点字</option>
+      <option value=1023>1023 易盾-点图标</option>
+    </select>
+    <label for="image">图片 Base64 / URL</label>
+    <textarea id=image rows=3 placeholder="粘贴 base64 或图片 URL"></textarea>
+    <label for="gap">滑块小图（可选）</label>
+    <textarea id=gap rows=2 placeholder="滑块小图 base64（滑块类需要）"></textarea>
+    <label for="extra">额外参数（JSON）</label>
+    <input id=extra placeholder='{"words":["A","B"], "count":3}'>
+    <div class=row>
+      <button class="btn btn-primary" onclick=test()>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+        识别
+      </button>
+      <button class="btn btn-ghost" onclick=upload()>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.6-3.6a2 2 0 0 0-2.8 0L5 21"/></svg>
+        上传图片
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class=console-head>
+      <span class=console-title>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3c8" stroke-width="2.2" stroke-linecap="round"><path d="m5 7 5 5-5 5M12 17h7"/></svg>
+        响应结果
+      </span>
+      <span class=chip id=chip>就绪</span>
+    </div>
+    <pre id=output class=muted>等待测试…</pre>
+  </div>
+
+  <footer>syandaV8 D3 · FastAPI · POST /solve</footer>
+</div>
+
 <script>
-async function test(){const t=document.getElementById('type').value;const img=document.getElementById('image').value;const gap=document.getElementById('gap').value;const extra=document.getElementById('extra').value;const out=document.getElementById('output');out.textContent='请求中…';try{const r=await fetch('/solve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:parseInt(t),image:img,gap_image:gap||null,extra:extra?JSON.parse(extra):null})});const d=await r.json();out.textContent=JSON.stringify(d,null,2)}catch(e){out.textContent='错误: '+e}}
-async function upload(){const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async function(){const file=input.files[0];if(!file)return;const b64=await file2b64(file);document.getElementById('image').value=b64;};input.click()}
+const $ = id => document.getElementById(id);
+function setChip(cls,text){const c=$('chip');c.className='chip'+(cls?' '+cls:'');c.textContent=text}
+function highlight(json){
+  return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false)\b|\bnull\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g, m=>{
+      const cls = /^"/.test(m) ? (/:$/.test(m)?'k':'s') : (/^(true|false|null)$/.test(m)?'b':'n');
+      return '<span class="'+cls+'">'+m+'</span>';
+    });
+}
+async function test(){
+  const t=$('type').value,img=$('image').value,gap=$('gap').value,extra=$('extra').value,out=$('output');
+  out.classList.remove('muted');out.textContent='请求中…';setChip('','请求中');
+  const t0=performance.now();
+  try{
+    const r=await fetch('/solve',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:parseInt(t),image:img,gap_image:gap||null,extra:extra?JSON.parse(extra):null})});
+    const d=await r.json();const ms=Math.round(performance.now()-t0);
+    out.innerHTML=highlight(JSON.stringify(d,null,2));
+    setChip(r.status===200&&d.code===0?'ok':'err',`HTTP ${r.status} · ${ms}ms`);
+  }catch(e){setChip('err','网络错误');out.textContent='错误: '+e}
+}
+async function upload(){
+  const input=document.createElement('input');input.type='file';input.accept='image/*';
+  input.onchange=async function(){const f=input.files[0];if(!f)return;$('image').value=await file2b64(f)};
+  input.click();
+}
 function file2b64(file){return new Promise((r,j)=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.onerror=j;fr.readAsDataURL(file)})}
-</script></body></html>
+</script>
+</body>
+</html>

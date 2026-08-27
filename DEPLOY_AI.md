@@ -1,10 +1,10 @@
-# AI Deployment Instructions - syandaV8 v2.2
+# AI Deployment Instructions - syandaV8 D3
 
 ## Package Summary
 | Field | Value |
 |-------|-------|
 | Name | syandaV8 |
-| Version | 2.2.0 |
+| Version | D3 |
 | Root | {workspace}/syandaV8 |
 | Total Size | ~39 MB (24 MB models + 15 MB code) |
 | File Count | 198 files (non-pycache) |
@@ -67,7 +67,7 @@ Base URL: http://{HOST}:{PORT}
 
 | Method | Path | Input | Output |
 |--------|------|-------|--------|
-| GET | / | - | Health check |
+| GET | /health | - | Health check |
 | GET | /types | - | Type list 19 types |
 | GET | /docs | - | Swagger UI |
 | GET | /metrics | - | Performance stats |
@@ -136,8 +136,8 @@ Step 8: sleep 3 && curl -sf http://localhost:15666/
 3. Restart: cd syandaV8 && python run.py &
 
 ## Monitoring
-Health: curl -sf http://localhost:15666/ every 10s
+Health: curl -sf http://localhost:15666/health every 10s
 Metrics: curl http://localhost:15666/metrics
 Logs: tail -f logs/server.log
 
-Auto-deploy instruction set v2.2 | Updated: 2026-08-27
+Auto-deploy instruction set D3 | Updated: 2026-08-27

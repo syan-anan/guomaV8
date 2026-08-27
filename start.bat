@@ -2,7 +2,7 @@
 chcp 65001 >nul
 setlocal EnableDelayedExpansion
 
-REM === syandaV8 Windows Launcher v2.2 ===
+REM === syandaV8 Windows Launcher ===
 cd /d "%~dp0"
 
 REM Create venv if missing
@@ -26,7 +26,7 @@ if exist ".env" (
 if not defined PORT set PORT=15666
 if not defined HOST set HOST=0.0.0.0
 
-echo Captcha Solver v2.2 on !HOST!:!PORT!
+echo syandaV8 D3 on !HOST!:!PORT!
 echo Checking solver registry...
 
 .venv\Scripts\python.exe run.py

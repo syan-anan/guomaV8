@@ -1,20 +1,41 @@
 # -*- coding: utf-8 -*-
-"""FastAPI 服务层 - 验证码识别 API (打码狗风格). v2.2: +/metrics +/batch_solve"""
+"""FastAPI 服务层 - 验证码识别 API (打码狗风格). D3: +/metrics +/batch_solve +/health"""
 import time, threading, hashlib, json
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from collections import defaultdict, deque
+from pathlib import Path
 from typing import Optional, List
 from fastapi import FastAPI, Form, Request
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import uvicorn
 from solver.registry import REGISTRY, solve
-from config import HOST, PORT, RATE_LIMIT_PER_MINUTE, INFER_TIMEOUT
+from config import APP_VERSION, HOST, PORT, RATE_LIMIT_PER_MINUTE, INFER_TIMEOUT
 from functools import lru_cache
 from solver.ocr import preload_ocr_models
 from solver.click import preload_click_models
 from api.response import ApiResponse, success, error, ErrorCode
 
-app = FastAPI(title="syandaV8", version="2.2.0", docs_url="/docs")
+app = FastAPI(title="syandaV8", version=APP_VERSION, docs_url="/docs")
+
+_WEB_PANEL = Path(__file__).resolve().parent.parent / "web" / "index.html"
+
+
+class SolveRequest(BaseModel):
+    type: int
+    image: str
+    gap_image: Optional[str] = None
+    extra: Optional[dict] = None
+
+
+class SolveResponse(BaseModel):
+    code: int
+    message: str = ""
+    type: int = 0
+    name: str = ""
+    data: dict = {}
+    conf: float = 0.0
+    cost_ms: float = 0.0
 
 
 # ---------- 单接口限流 ----------
@@ -109,21 +130,6 @@ def _record(type_code, cost_ms, ok):
         if ok:
             b["ok"] += 1
 
-class SolveRequest(BaseModel):
-    type: int
-    image: str
-    gap_image: Optional[str] = None
-    extra: Optional[dict] = None
-
-class SolveResponse(BaseModel):
-    code: int
-    message: str = ""
-    type: int = 0
-    name: str = ""
-    data: dict = {}
-    conf: float = 0.0
-    cost_ms: float = 0.0
-
 def _build_params(type_code, req):
     params = {}
     if type_code in (1001, 1002, 1003):
@@ -175,7 +181,17 @@ def _do_solve(req: SolveRequest):
 
 @app.get("/")
 async def root():
-     return success({"service": "syandaV8", "version": "2.2.0", "types": len(REGISTRY), "status": "running"})
+     return success({"service": "syandaV8", "version": APP_VERSION, "types": len(REGISTRY), "status": "running"})
+
+
+@app.get("/panel", include_in_schema=False)
+async def panel():
+    return FileResponse(_WEB_PANEL)
+
+
+@app.get("/health")
+async def health():
+     return success({"service": "syandaV8", "version": APP_VERSION, "status": "running"})
 
 @app.get("/types")
 async def list_types():
@@ -244,5 +260,5 @@ async def apiv1_slide(bg: str = Form(...), gap: str = Form(None)):
      return success(result.get("data", {}), type_code=1004)
 
 if __name__ == "__main__":
-    print("captcha solver 2.2 on " + HOST + ":" + str(PORT) + "  types=" + str(len(REGISTRY)))
+    print(f"syandaV8 {APP_VERSION} on {HOST}:{PORT} types={len(REGISTRY)}")
     uvicorn.run(app, host=HOST, port=PORT, log_level="info")

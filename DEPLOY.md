@@ -1,4 +1,4 @@
-# syandaV8 v2.2 -- 独立部署指南
+# syandaV8 D3 -- 独立部署指南
 
 > 本项目完全自包含，复制到任何服务器即可直接运行，无需修改代码。
 
@@ -99,7 +99,7 @@ curl http://localhost:15666/
 
 **预期返回：**
 `json
-{"code":0,"message":"ok","data":{"service":"syandaV8","version":"2.2.0","types":19,"status":"running"}}
+{"code":0,"message":"ok","data":{"service":"syandaV8","version":"D3","types":19,"status":"running"}}
 `
 
 ---
@@ -202,4 +202,4 @@ apt-get install -y libglib2.0-0 libsm6 libxext6 libxrender-dev libgbm1 libgomp1
 | 点选识别 (单次) | 80-300ms | 30+ QPS |
 | 批量识别 (50张) | 2-5s | 取决于并发 |
 
-*版本：v2.2.0 | 支持题型：19种 | 最后更新：2026-08-27*
+*版本：D3 | 支持题型：19种 | 最后更新：2026-08-27*

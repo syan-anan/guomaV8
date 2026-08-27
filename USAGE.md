@@ -1,6 +1,6 @@
 # syandaV8 — 验证码识别服务 使用手册
 
-版本：2.2.0  
+版本：D3  
 支持题型：19 种（极验三代/四代、易盾、文字识别）
 
 ---
@@ -124,7 +124,7 @@ http://0.0.0.0:15666
 启动日志示例：
 
 ```
-Captcha Solver v2.0 — 启动于 http://0.0.0.0:15666
+syandaV8 D3 — 启动于 http://0.0.0.0:15666
 支持 19 种题型
 INFO:     Uvicorn running on http://0.0.0.0:15666 (Press CTRL+C to quit)
 INFO:     Started server process [12345]

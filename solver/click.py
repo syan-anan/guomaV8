@@ -33,6 +33,33 @@ def preload_click_models():
 def _region_key(x1, y1, x2, y2):
     return (x1 // 8, y1 // 8, x2 // 8, y2 // 8)
 
+
+def mark_duplicate_regions(selected_index, regions, used,
+                           max_center_dist=10.0, min_iou=0.55):
+    """Treat near-duplicate detector boxes as one selected glyph."""
+    sel = regions[selected_index]
+    sx1, sy1 = sel["x"], sel["y"]
+    sx2, sy2 = sx1 + sel["w"], sy1 + sel["h"]
+
+    for ri, region in enumerate(regions):
+        if ri == selected_index or ri in used:
+            continue
+        dx = region["cx"] - sel["cx"]
+        dy = region["cy"] - sel["cy"]
+        if dx * dx + dy * dy <= max_center_dist * max_center_dist:
+            used.add(ri)
+            continue
+
+        x1, y1 = region["x"], region["y"]
+        x2, y2 = x1 + region["w"], y1 + region["h"]
+        ix1, iy1 = max(sx1, x1), max(sy1, y1)
+        ix2, iy2 = min(sx2, x2), min(sy2, y2)
+        iw, ih = max(0, ix2 - ix1), max(0, iy2 - iy1)
+        inter = iw * ih
+        union = sel["w"] * sel["h"] + region["w"] * region["h"] - inter
+        if union > 0 and inter / union >= min_iou:
+            used.add(ri)
+
 def _color_regions(img, min_chan=190, min_area=60, close_k=5):
     """文字/图标颜色较深，背景亮噪声：min通道 < min_chan 即为前景区域"""
     mn = np.min(img.astype(np.int16), axis=2)
@@ -154,6 +181,7 @@ def solve_click_word(img_src, target_words):
         if best:
             ri, r = best
             used.add(ri)
+            mark_duplicate_regions(ri, regions, used)
             points.append({"x": r["cx"], "y": r["cy"], "text": r["text"]})
     return {"points": points, "count": len(points), "total": len(targets)}
 def _local_peaks(res, k=6, min_dist=18):
