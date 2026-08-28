@@ -26,7 +26,7 @@ os.environ.setdefault("ONNXRUNTIME_CACHE", str(CACHE / "onnx"))
 
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "15666"))
-APP_VERSION = os.getenv("APP_VERSION", "D3")
+APP_VERSION = os.getenv("APP_VERSION", "D4")
 OCR_RETRY = int(os.getenv("OCR_RETRY", "3"))
 SLIDE_SCALES = [1.0, 0.9, 0.8]
 ADMIN_KEY = os.getenv("ADMIN_KEY", "changeme")

@@ -3,7 +3,8 @@
   "blank": 62,
   "height": 48,
   "width": 160,
-  "checkpoint": "H:\\qinglong\\ddddocr\\cnn\\crnn63_best.pt",
-  "epoch": 76,
-  "best": 0.16285
+  "checkpoint": "cnn\\crnn63_best_cycle7_epoch113.pt",
+  "epoch": 113,
+  "best": 0.952054643554127,
+  "release_version": "D4"
 }

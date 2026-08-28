@@ -37,13 +37,17 @@ def _get_session():
 
 def _read_bytes(image_source):
     if isinstance(image_source, (str, pathlib.Path)):
-        path = pathlib.Path(image_source)
-        if path.exists():
-            return path.read_bytes()
         text = str(image_source)
+        if len(text) <= 200:
+            try:
+                path = pathlib.Path(text)
+                if path.exists():
+                    return path.read_bytes()
+            except OSError:
+                pass
         if len(text) > 200 or "," in text:
             import base64
-            return base64.b64decode(text.split(",", 1)[-1])
+            return base64.b64decode(text.split(",", 1)[-1].replace(" ", "+"))
         return None
     if isinstance(image_source, bytes):
         return image_source
@@ -128,7 +132,7 @@ def solve_ocr63(image_source, type_code=1001):
         clean = "".join(c for c in text if c.isalnum())
     threshold = FALLBACK_THRESHOLDS.get(int(type_code))
     engine_name = "crnn63"
-    if threshold is not None and clean and raw and confidence < threshold:
+    if threshold is not None and raw and (not clean or confidence < threshold):
         rescued = _fallback_text(raw, int(type_code))
         if len(rescued) >= 2:
             clean = rescued

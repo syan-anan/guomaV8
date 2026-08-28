@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT))
 # 加载 solver.registry
 from solver.registry import solve
 
-SAMPLES_PER_TYPE = 20
+SAMPLES_PER_TYPE = 100
 
 
 # ===================== 图片生成工具 =====================
@@ -333,16 +333,22 @@ def main():
     for code, name, gen_params in types_to_test:
         print(f"\n  测试 {code} — {name} ...", end=" ", flush=True)
         passed, total, errors = 0, SAMPLES_PER_TYPE, []
+        latencies = []
         for i in range(total):
             p = gen_params()
             func = p.pop("func")
+            t0 = time.perf_counter()
             try:
                 result = func(**p)
+                elapsed_ms = (time.perf_counter() - t0) * 1000
+                latencies.append(elapsed_ms)
                 if result.get("code") == 0:
                     passed += 1
                 else:
                     errors.append(f"r{i}: code={result.get('code')} {result.get('error','')}")
             except Exception as e:
+                elapsed_ms = (time.perf_counter() - t0) * 1000
+                latencies.append(elapsed_ms)
                 errors.append(f"r{i}: EXC {type(e).__name__}: {str(e)[:80]}")
         rate = passed / total * 100 if total else 0
         status = "PASS" if passed == total else (f"PARTIAL({passed}/{total})" if passed > 0 else "FAIL")
@@ -351,7 +357,9 @@ def main():
             print(f"    {e}")
         all_results.append({
             "code": code, "name": name, "passed": passed,
-            "total": total, "rate": round(rate, 1), "errors": errors
+            "total": total, "rate": round(rate, 1), "errors": errors,
+            "avg_ms": round(sum(latencies) / len(latencies), 2) if latencies else 0,
+            "p95_ms": round(sorted(latencies)[int(len(latencies) * 0.95) - 1], 2) if latencies else 0,
         })
 
     # 汇总
@@ -362,10 +370,10 @@ def main():
     print("\n" + "=" * 70)
     print(f"  汇总: {total_passed}/{total_tests} 通过  |  总耗时 {elapsed:.1f}s")
     print("=" * 70)
-    print(f"  {'代码':>5}  {'题型':<20} {'通过':>5} {'总数':>5} {'通过率':>7}")
-    print(f"  {'-'*5}  {'-'*20} {'-'*5} {'-'*5} {'-'*7}")
+    print(f"  {'代码':>5}  {'题型':<20} {'通过':>5} {'总数':>5} {'通过率':>7} {'平均ms':>9} {'P95ms':>9}")
+    print(f"  {'-'*5}  {'-'*20} {'-'*5} {'-'*5} {'-'*7} {'-'*9} {'-'*9}")
     for r in all_results:
-        print(f"  {r['code']:>5}  {r['name']:<20} {r['passed']:>4}/{r['total']:<3} {r['rate']:>6.1f}%")
+        print(f"  {r['code']:>5}  {r['name']:<20} {r['passed']:>4}/{r['total']:<3} {r['rate']:>6.1f}% {r['avg_ms']:>9.2f} {r['p95_ms']:>9.2f}")
     print("=" * 70)
 
     # 保存 JSON
