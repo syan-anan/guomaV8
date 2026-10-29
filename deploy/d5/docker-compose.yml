@@ -2,7 +2,7 @@ services:
   captcha-solver:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.slim5
     image: captcha-solver:d5
     container_name: captcha-solver
     restart: unless-stopped
@@ -14,6 +14,7 @@ services:
       - ./logs:/app/logs
       - ./__cache:/app/__cache
       - ./cnn:/app/cnn:ro
+      - ./venv:/opt/venv:ro
     deploy:
       resources:
         limits:
