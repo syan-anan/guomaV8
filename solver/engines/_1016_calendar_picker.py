@@ -4,12 +4,8 @@ import cv2, numpy as np
 
 class CalendarPickerSolver:
     def load_cv(self, src):
-        import io, base64
-        if isinstance(src, str): 
-            bts = base64.b64decode(src.split(",")[1]) if "," in src else open(src,"rb").read()
-        elif hasattr(src, "read"): bts = src.read()
-        else: bts = src
-        return cv2.imdecode(np.frombuffer(bts, np.uint8), cv2.IMREAD_COLOR)
+        from solver.utils import load_to_cv
+        return load_to_cv(src)
 
     def solve(self, src):
         img = self.load_cv(src)

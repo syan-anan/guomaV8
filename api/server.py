@@ -127,9 +127,9 @@ class SolveResponse(BaseModel):
 
 def _build_params(type_code, req):
     params = {}
-    if type_code in (1001, 1002, 1003):
+    if type_code in (1001, 1002, 1003, 1009, 1014, 1024, 1025, 1026):
         params["img"] = req.image
-    elif type_code in (1004, 1010, 1012, 1020):
+    elif type_code in (1004, 1010, 1011, 1012, 1020):
         params["bg"] = req.image
         if req.gap_image:
             params["gap"] = req.gap_image

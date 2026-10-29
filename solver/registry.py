@@ -108,11 +108,20 @@ def _rotation(img_src):
 
 def _long_slider(img_src, gap=None):
     mod = _engine("_1011_long_slider")
-    cls = getattr(mod, "LongSliderSolver", None) or getattr(mod, "solve_long_slider", None)
+    cls = getattr(mod, "LongSliderSolver", None) or getattr(mod, "LongSliderTrajectory", None) or getattr(mod, "solve_long_slider", None)
     if cls is None: raise RuntimeError("long slider unavailable")
-    inst = cls() if callable(cls) and hasattr(cls, "solve") else None
-    if inst is not None: return inst.solve(img_src, gap)
-    return cls(img_src, gap)
+    dist = 0.0
+    if gap is not None:
+        try:
+            dist = float(detect_gap_multiscale(img_src, gap).get("distance") or 0.0)
+        except Exception:
+            dist = 0.0
+    inst = cls() if callable(cls) else None
+    if inst is not None and hasattr(inst, "generate_trajectory"):
+        return inst.generate_trajectory(dist)
+    if inst is not None and hasattr(inst, "solve"):
+        return inst.solve(img_src, dist)
+    return cls(img_src, dist)
 
 
 def _match3(img_src):
