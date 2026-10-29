@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """FastAPI 服务层 - 验证码识别 API (打码狗风格). v2.2: +/metrics +/batch_solve"""
+from __future__ import annotations
 import time, threading, hashlib, json
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from collections import defaultdict, deque
