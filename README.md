@@ -1,177 +1,86 @@
-# guomaV8 — 验证码识别服务
+# syandmV8 D5
 
-**当前版本：D3** ｜ **19 种题型全覆盖** ｜ Docker 一键部署 ｜ HTTP API 调用
+**版本：D5** ｜ 通用打码服务 + reCAPTCHA 统一入口 ｜ 可独立运行
 
----
+## 包含两条线
 
-## ⚡ 一键部署（推荐）
+1. **打码 API**（原 D4 能力，25 种题型）：`run.py` → `http://0.0.0.0:15666`
+2. **reCAPTCHA 求解**（D5 新增）：`tools/rc_solve_auto.py`，图像先试、失败自动切音频
 
-只需一条命令，自动完成克隆、构建、启动：
+## 安装
 
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/syan-anan/guomaV8/main/deploy.sh)
-```
-
-> 国内网络不通时使用加速地址下载脚本：
->
-> ```bash
-> bash <(curl -fsSL https://ghproxy.net/https://raw.githubusercontent.com/syan-anan/guomaV8/main/deploy.sh)
-> ```
-
-可选环境变量：
+需要 Python 3.10+，Windows 下另需本机 Chrome（reCAPTCHA 线使用 `channel="chrome"`）。
 
 ```bash
-PORT=15666 APP_DIR=/opt/guomaV8 bash <(curl -fsSL https://raw.githubusercontent.com/syan-anan/guomaV8/main/deploy.sh)
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-部署完成后验证：
+模型全部随包提供，无需下载：
+
+- `cnn/`：OCR / 路由 / 点选 / 特化模型（61 个运行期文件）
+- `_bk_tmp/clipl/`：CLIP 视觉塔（图像九宫格打分）
+- `_bk_tmp/whisper_tiny_en/`：音频转写
+- `cnn/rc_tile/rc_head_da.onnx`：九宫格分类头（ONNX，无 torch 依赖）
+
+## 启动打码 API
 
 ```bash
-curl http://127.0.0.1:15666/health
+python run.py
 ```
 
----
+默认 `HOST=0.0.0.0`、`PORT=15666`，可用环境变量覆盖。
 
-## 🐳 手动 Docker 部署
+```
+GET  /            服务信息
+GET  /types       题型列表
+POST /solve       {"type":1001,"image":"<base64>"}
+POST /apiv1/ocr   multipart(image,type)
+```
 
-### 方式一：docker run（和青龙面板同风格）
+## 启动 reCAPTCHA 求解
 
 ```bash
-git clone https://github.com/syan-anan/guomaV8.git
-cd guomaV8
-cp .env.example .env
-docker build -t guoma-v8:latest .
-docker run -d \\
-  --name guomaV8 \\
-  --restart always \\
-  -p 15666:15666 \\
-  -v ./logs:/app/logs \\
-  guoma-v8:latest
+python tools\rc_solve_auto.py 10 run1
+python tools\rc_solve_auto.py 10 run1 https://your-site.example/path
 ```
 
-### 方式二：docker compose
+参数：`次数`、`标签`、`可选目标 URL`。结果写入 `reports/rc_auto_<标签>.jsonl`。
 
-```bash
-git clone https://github.com/syan-anan/guomaV8.git
-cd guomaV8
-cp .env.example .env
-docker compose up -d
+策略与依赖：
+
+- 每次一条住宅代理（`tools` 内已内置提取接口，换代理需改 `API` 常量）
+- 3×3 图像最多 2 次提交；16 格或词表外类别直接走音频
+- `blocked / noform / noaudio` 自动换代理重试，最多 3 次
+- 依赖：干净住宅代理、本机 Chrome；音频通过依赖会话可信度，不是识别正确率
+
+## 验收数据（D5）
+
+| 项 | 结果 |
+|---|---|
+| 通用 OCR 单图 | 91.6–96.0%（六集） |
+| Turnstile（本机 IP + 真实 profile） | 7/7 served |
+| reCAPTCHA 统一入口 | 28/30 = 93.3%（image 3 / audio 25） |
+| reCAPTCHA 图像九宫格 | 单题 11.2%，未达标 |
+| 音频兜底 | 19/20 = 95% |
+
+## 目录
+
+```
+run.py  config.py  requirements.txt
+api/                 FastAPI 服务
+solver/              25 种题型求解器 + engines/
+tools/               rc_solve_auto.py, rc_audio_solve.py
+cnn/                 运行期模型
+_bk_tmp/clipl/       CLIP 视觉塔
+_bk_tmp/whisper_tiny_en/
+reports/             运行输出（初始为空）
+MANIFEST.json        构建清单
 ```
 
-### 常用管理命令
+## 已知边界
 
-| 操作 | 命令 |
-|------|------|
-| 查看日志 | `docker logs -f guomaV8` |
-| 重启 | `docker restart guomaV8` |
-| 停止 | `docker stop guomaV8 && docker rm guomaV8` |
-| 更新版本 | `cd /opt/guomaV8 && git pull && docker compose up -d --build` |
-
----
-
-## 🔌 API 使用教程
-
-服务端口：`15666`，认证方式：Header 带 `X-Admin-Key`（密钥在 `.env` 的 `ADMIN_KEY`）。
-
-### 统一求解接口 POST /solve
-
-```bash
-curl -X POST http://127.0.0.1:15666/solve \\
-  -H "Content-Type: application/json" \\
-  -H "X-Admin-Key: 你的ADMIN_KEY" \\
-  -d '{
-    "type": 1004,
-    "image": "背景图base64",
-    "gap_image": "滑块小图base64"
-  }'
-```
-
-返回示例：
-
-```json
-{ "code": 0, "data": { "x": 186, "y": 34 }, "cost_ms": 42 }
-```
-
-### 支持的题型（19 种）
-
-| 分组 | 题型编号 |
-|------|----------|
-| 普通 OCR | 1001 英数混合 · 1002 纯数字 · 1003 纯字母 |
-| 极验三代 | 1004 滑动 · 1005 点选选字 · 1006 点选选物 · 1007 语序 · 1008 空间推理 · 1019 九宫格 |
-| 极验四代 | 1012 滑动 · 1013 五子棋 · 1014 消消乐 · 1015 选汉字 · 1016 点过 · 1017 点图标 · 1018 九宫格 |
-| 易盾 | 1020 滑动拼图 · 1021 无感点过 · 1022 点字 · 1023 点图标 |
-| 其他 | 1009 极验无感知 · 1011 谷歌 recaptcha |
-
-### 文档与调试
-
-- Swagger 在线文档：`http://127.0.0.1:15666/docs`
-- 服务自检：`python scripts/service_selftest_19types.py`
-- 健康检查：`GET /health`
-
----
-
-## ⚙️ 配置说明（.env）
-
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| HOST | 0.0.0.0 | 监听地址 |
-| PORT | 15666 | 服务端口 |
-| ADMIN_KEY | （必改） | 接口鉴权密钥 |
-| OCR_RETRY | 3 | 识别重试次数 |
-| RATE_LIMIT_PER_MINUTE | 1000 | 每分钟请求上限 |
-| INFER_TIMEOUT | 30000 | 单次推理超时(ms) |
-
----
-
-## 📜 版本历史
-
-- **D3（当前）**：CRNN63 双模型融合 + 模型再优化 + Docker 一键部署脚本
-- **D2 / D1**：初版引擎与基准测试
-
-## ⚠️ 免责声明与许可协议
-
-**最后更新：2026-08-27 · 请在使用前仔细阅读，下载、克隆或运行本项目的任何部分即视为已阅读并同意本协议全部内容**
-
-### 一、项目性质
-
-本项目（以下简称"本软件"）是一个基于机器学习的图形验证码技术研究工具，仅供**个人学习、学术研究与技术交流**使用。本软件不预置任何针对特定网站或商业系统的攻击能力，不收集、不上传任何用户数据。
-
-### 二、使用目的
-
-1. 本软件仅可用于：合法的安全研究、学术研究、个人技术学习、自有系统（本人拥有所有权或已获书面授权的系统）的测试与验收。
-2. **严禁用于任何商业用途**，包括但不限于：出售、租赁、转授权、集成到商业产品中、以任何形式收取费用或牟利。
-3. **严禁用于以下行为：**
-   - 绕过任何未获得明确书面授权的第三方网站的验证码、风控或安全机制；
-   - 批量注册账号、薅羊毛、刷单、抢购、投票作弊等干扰正常业务秩序的行为；
-   - 爬取、抓取违反目标网站服务条款的数据；
-   - 任何违反所在国家/地区法律法规的活动，包括但不限于《中华人民共和国网络安全法》《计算机信息网络国际联网安全保护管理办法》及其他司法管辖区的相关法律。
-
-### 三、责任归属
-
-1. 用户使用本软件进行的一切操作及其产生的后果，均属**用户个人行为**，与本软件的开发者、贡献者、维护者及其关联方无关。
-2. 用户应自行承担因使用本软件而产生的全部法律责任和风险。包括但不限于由此引发的：法律诉讼、行政处罚、刑事追诉、账号封禁、经济损失、数据丢失、设备损坏等。
-3. 若因用户不当使用导致第三方权益受损，由用户自行承担全部赔偿责任，开发者不承担任何连带责任。
-
-### 四、无担保与责任限制
-
-1. 本软件按 **"现状"（AS IS）** 提供，不附带任何明示或默示的担保，包括但不限于对适销性、特定用途适用性、准确性、完整性、可用性的保证。
-2. 开发者不保证服务的连续性、稳定性、无误性，不对因网络中断、模型失效、第三方平台升级导致的识别失败承担任何责任。
-3. 在适用法律允许的最大范围内，开发者对任何直接的、间接的、附带的、特殊的或后果性的损害概不负责——即使已被告知发生此类损害的可能性。
-
-### 五、知识产权
-
-1. 本软件源代码仅供学习交流，未经开发者书面同意，任何人不得将代码的全部或部分用于再发布、二次封装或商业分发。
-2. 本软件所引用的开源组件（如 PyTorch、OpenCV 等）遵循其各自的原始开源协议。
-
-### 六、协议终止
-
-若您不同意上述任何条款，请立即停止使用并删除本软件的所有副本。一旦发现使用者违反本协议，开发者有权随时终止对该用户提供的一切支持与服务，并保留追究法律责任的权利。
-
-### 七、其他
-
-1. 本协议未尽事宜，参照国家相关法律法规及行业惯例执行。
-2. 本协议最终解释权归软件开发者所有。
-
----
-
-**继续使用本软件，即表示您已充分阅读、理解并同意本免责声明的全部内容，并自愿承担因使用本软件而产生的一切责任与风险。**
+- 图像九宫格是短板：单格 precision 0.90，目标是 0.98；D5 靠音频兜底。
+- 两条线网络配置相反：reCAPTCHA 要住宅代理，Turnstile 要本机 IP + 真实 profile。
+- 社区站 429 会阻断 Turnstile 连续测量，需间隔重试。

@@ -4,7 +4,7 @@
 为 OCR / 滑动 / 点选 / 空间推理等所有题型提供一致的图片加载与预处理接口。
 设计原则：
 - 输入兼容：base64 字符串 / bytes / 本地路径 / cv2 数组 / PIL.Image
-- 输出稳定：BGR 格式 cv2 数组（与 syandaV8 / OpenCV 对齐）
+- 输出稳定：BGR 格式 cv2 数组（与 ddddocr / OpenCV 对齐）
 - 可配置：通过 pipeline 字典组合预处理步骤，便于复现和调优
 """
 import io, os, base64

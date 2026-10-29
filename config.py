@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Global config - portable paths anchored to the project root.
+"""Global config - all paths anchored to H drive, no C drive usage.
 支持从 .env 文件加载环境变量，便于部署时配置。"""
 from pathlib import Path
 import os
@@ -26,7 +26,7 @@ os.environ.setdefault("ONNXRUNTIME_CACHE", str(CACHE / "onnx"))
 
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "15666"))
-APP_VERSION = os.getenv("APP_VERSION", "D4")
+APP_VERSION = os.getenv("APP_VERSION", "D5")
 OCR_RETRY = int(os.getenv("OCR_RETRY", "3"))
 SLIDE_SCALES = [1.0, 0.9, 0.8]
 ADMIN_KEY = os.getenv("ADMIN_KEY", "changeme")
@@ -42,3 +42,4 @@ COORD_OFFSETS = {
     # "1005": [2, -1],
     # "1006": [1, 0],
 }
+

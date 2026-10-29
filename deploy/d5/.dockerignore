@@ -1,0 +1,6 @@
+cnn/
+logs/
+__cache/
+reports/
+*.bak*
+__pycache__/

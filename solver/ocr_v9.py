@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 DDDDOCR V9 完美融合版 (Final Integration)
-整合 RapidOCR 的预处理理念、PaddleOCR 的标准化策略以及 syandaV8 的高性能推理。
+整合 RapidOCR 的预处理理念、PaddleOCR 的标准化策略以及 ddddocr 的高性能推理。
 核心改进：自适应阈值、形态学去噪、尾部增强、多模型投票。
 """
 import io

@@ -2,10 +2,9 @@
 import io, numpy as np, cv2, base64, sys, os
 from PIL import Image
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, BASE)
-sys.path.insert(0, os.path.join(BASE, 'solver'))
-sys.path.insert(0, os.path.join(BASE, 'solver', 'engines'))
+sys.path.insert(0, 'H:/qinglong/syandmV8')
+sys.path.insert(0, 'H:/qinglong/syandmV8/solver')
+sys.path.insert(0, 'H:/qinglong/syandmV8/solver/engines')
 
 try:
     from ocr_v8 import solve_ocr_v8

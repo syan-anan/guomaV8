@@ -91,6 +91,6 @@ def merge_engines(dd_text, dd_conf, cnn_text, cnn_conf, type_code):
     if not dd:
         return cn, "cnn", cnn_conf
     # 保守：只有长度一致且 CNN 置信度显著高时才用 CNN
-    if len(cn) == len(dd) and cnn_conf > dd_conf + 0.10:
+    if len(cn) == len(dd) and cnn_conf > dd_conf + 0.05:
         return cn, "cnn", cnn_conf
     return dd, "dd", dd_conf

@@ -106,6 +106,43 @@ def _contour_regions(img, min_area=120):
         merged.append(b)
     return merged
 
+_ROT_ANGLES = (-16, -12, -8, -5, -2, 2, 5, 8, 12, 16)
+
+
+def _single_alnum(text):
+    t = (text or "").strip().upper()
+    return len(t) == 1 and ("A" <= t <= "Z" or "0" <= t <= "9")
+
+
+def _classify_angle(crop, angle):
+    h, w = crop.shape[:2]
+    img = crop
+    if angle:
+        m = cv2.getRotationMatrix2D((w / 2.0, h / 2.0), angle, 1.0)
+        img = cv2.warpAffine(crop, m, (w, h), flags=cv2.INTER_CUBIC,
+                             borderMode=cv2.BORDER_REPLICATE)
+    if img.shape[0] > 0 and img.shape[1] > 0:
+        img = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    _, buf = cv2.imencode(".png", img)
+    try:
+        return _cls().classification(buf.tobytes()).strip()
+    except Exception:
+        return ""
+
+
+def _read_region(crop):
+    """Upright read first; rotation sweep only when that read is not a single glyph."""
+    base = _classify_angle(crop, 0)
+    alts = set()
+    if _single_alnum(base):
+        return base, [base.upper()]
+    for ang in _ROT_ANGLES:
+        t = _classify_angle(crop, ang)
+        if _single_alnum(t):
+            alts.add(t.upper())
+    return base, sorted(alts)
+
+
 def detect_text_regions(img_src):
     img = load_to_cv(img_src)
     pil = cv_to_pil(img)
@@ -120,17 +157,11 @@ def detect_text_regions(img_src):
             return
         seen.add(k)
         crop = img[y1:y2, x1:x2]
-        if crop.shape[0] > 0 and crop.shape[1] > 0:
-            crop = cv2.resize(crop, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-        _, buf = cv2.imencode(".png", crop)
-        try:
-            text = _cls().classification(buf.tobytes()).strip()
-        except Exception:
-            text = ""
+        text, alts = _read_region(crop)
         regions.append({"x": x1, "y": y1, "w": x2 - x1, "h": y2 - y1,
                         "cx": int((x1 + x2) // 2), "cy": int((y1 + y2) // 2),
-                        "text": text, "conf": float(conf)})
-    # 1) syandaV8 det
+                        "text": text, "alts": alts, "conf": float(conf)})
+    # 1) ddddocr det
     try:
         results = _det().detection(pil)
         for box in results:
@@ -159,31 +190,61 @@ def detect_text_regions(img_src):
     return regions
 
 def solve_click_word(img_src, target_words):
+    """Per-target assignment: all exact glyph hits first, then contains / fuzzy.
+
+    Pass 1 keeps a wrong-but-close read on an early target from stealing the region that
+    a later target matches exactly (that cascade misaligned every point after it).
+    """
     regions = detect_text_regions(img_src)
-    points = []
-    used = set()
     targets = [str(w).upper().strip() for w in target_words]
-    for word in targets:
-        best, best_kind = None, 3  # 0=精确 1=包含 2=模糊
+    used = set()
+    chosen = [None] * len(targets)
+
+    def alts_of(r):
+        s = set(r.get("alts") or [])
+        rt = r["text"].upper().strip()
+        if rt and len(rt) == 1:
+            s.add(rt)
+        return s
+
+    for ti, word in enumerate(targets):
+        for ri, r in enumerate(regions):
+            if ri in used:
+                continue
+            if word in alts_of(r):
+                used.add(ri)
+                mark_duplicate_regions(ri, regions, used)
+                chosen[ti] = ri
+                break
+
+    for ti, word in enumerate(targets):
+        if chosen[ti] is not None:
+            continue
+        best, best_kind = None, 3
         for ri, r in enumerate(regions):
             if ri in used:
                 continue
             rt = r["text"].upper().strip()
             if not rt:
                 continue
-            if rt == word:
-                if best_kind > 0:
-                    best, best_kind = (ri, r), 0
-            elif word in rt and best_kind > 1:
-                best, best_kind = (ri, r), 1
+            if word in rt and best_kind > 1:
+                best, best_kind = ri, 1
             elif len(word) == 1 and len(rt) == 1 and best_kind > 2:
-                best, best_kind = (ri, r), 2
-        if best:
-            ri, r = best
-            used.add(ri)
-            mark_duplicate_regions(ri, regions, used)
-            points.append({"x": r["cx"], "y": r["cy"], "text": r["text"]})
+                best, best_kind = ri, 2
+        if best is not None:
+            used.add(best)
+            mark_duplicate_regions(best, regions, used)
+            chosen[ti] = best
+
+    points = []
+    for ri in chosen:
+        if ri is None:
+            continue
+        r = regions[ri]
+        points.append({"x": r["cx"], "y": r["cy"], "text": r["text"]})
     return {"points": points, "count": len(points), "total": len(targets)}
+
+
 def _local_peaks(res, k=6, min_dist=18):
     """从匹配响应图取前 k 个局部峰（避免同模板多个候选位置）"""
     kernel = np.ones((min_dist * 2 + 1, min_dist * 2 + 1), np.uint8)

@@ -1,21 +1,27 @@
-# 虚拟环境
-.venv/
-venv/
-env/
+# 模型和训练数据
+cnn/*.npz
+cnn/*.pt
+cnn/*.npy
+cnn/*.onnx
+cnn/train_data/
+cnn/char_data/
 
-# Python 缓存
+# 缓存和虚拟环境
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
+.venv/
 
-# 日志
+# 日志和备份
 logs/
+备份back/
 *.log
 
-# 备份
-备份back/
-*.bak
+# 其他
+*.bak*
+*.original
+*.local_bak
+_bk_tmp/
 
 # IDE
 .idea/
@@ -26,6 +32,27 @@ logs/
 .DS_Store
 Thumbs.db
 
-.env
-backups/
-*.onnx.tmp
+__cache/
+# 大文件/缓存/参考项目
+_bk_tmp/
+bench_tool/temp_test_imgs/
+bench_tool/reference/
+__cache/
+projects/
+cnn/
+server_backup/
+server_snapshot/
+*.npz
+*.pt
+*.npy
+*.onnx
+bench_tool/behavior_testset500/
+bench_tool/behavior_testset/
+bench_tool/sample_bank_*/
+bench_tool/datasets/
+bench_tool/testset_*/
+bench_tool/temp_test_imgs/
+bench_tool/reference/
+
+dist/
+

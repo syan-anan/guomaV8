@@ -1,0 +1,20 @@
+services:
+  captcha-solver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: captcha-solver:d5
+    container_name: captcha-solver
+    restart: unless-stopped
+    ports:
+      - "15666:15666"
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+      - ./__cache:/app/__cache
+      - ./cnn:/app/cnn:ro
+    deploy:
+      resources:
+        limits:
+          memory: 2G
